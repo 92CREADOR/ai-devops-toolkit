@@ -1,14 +1,14 @@
-"""
-Unit tests for LogAnalyzer.
+"""Unit tests for LogAnalyzer.
 
 Uses mocking to avoid real OpenAI API calls during testing.
 """
 
-import pytest
 from pathlib import Path
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, patch
 
-from log_analyzer import LogAnalyzer, AnalysisResult
+import pytest
+
+from log_analyzer import AnalysisResult, LogAnalyzer
 
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -36,7 +36,9 @@ SAMPLE_LOG_FAILURE = """
 
 MOCK_ANALYSIS_RESULT = AnalysisResult(
     root_cause="ModuleNotFoundError: pydantic is not installed in the Python environment",
-    suggested_fix="Add 'pydantic>=2.0.0' to requirements.txt and run 'pip install -r requirements.txt'",
+    suggested_fix=(
+        "Add 'pydantic>=2.0.0' to requirements.txt and run 'pip install -r requirements.txt'"
+    ),
     confidence_score=0.95,
     error_type="dependency",
     affected_file="log_analyzer.py",
@@ -58,6 +60,7 @@ def mock_openai_response():
 
 
 # ─── Tests: AnalysisResult model ─────────────────────────────────────────────
+
 
 class TestAnalysisResult:
     def test_valid_result(self):
@@ -89,6 +92,7 @@ class TestAnalysisResult:
 
 # ─── Tests: LogAnalyzer initialization ───────────────────────────────────────
 
+
 class TestLogAnalyzerInit:
     def test_default_model(self, analyzer):
         assert analyzer.model == "gpt-4o-mini"
@@ -102,6 +106,7 @@ class TestLogAnalyzerInit:
 
 
 # ─── Tests: LogAnalyzer.analyze() ────────────────────────────────────────────
+
 
 class TestLogAnalyzerAnalyze:
     def test_analyze_nonexistent_file(self, analyzer):
@@ -144,13 +149,13 @@ class TestLogAnalyzerAnalyze:
         analyzer = LogAnalyzer(api_key="fake")
         analyzer.analyze(log_file)
 
-        # Verify the LLM was called once
         mock_client.beta.chat.completions.parse.assert_called_once()
         call_args = mock_client.beta.chat.completions.parse.call_args
         assert call_args.kwargs["model"] == "gpt-4o-mini"
 
 
 # ─── Tests: LogAnalyzer.analyze_content() ────────────────────────────────────
+
 
 class TestAnalyzeContent:
     def test_empty_content_raises_error(self, analyzer):
@@ -170,6 +175,7 @@ class TestAnalyzeContent:
 
 
 # ─── Tests: LogAnalyzer._truncate_log() ──────────────────────────────────────
+
 
 class TestTruncateLog:
     def test_short_log_not_truncated(self, analyzer):
@@ -195,6 +201,7 @@ class TestTruncateLog:
 
 
 # ─── Tests: LogAnalyzer.extract_errors() ─────────────────────────────────────
+
 
 class TestExtractErrors:
     def test_extracts_error_lines(self):
