@@ -1,5 +1,4 @@
-"""
-AI-powered log analyzer for CI/CD pipelines.
+"""AI-powered log analyzer for CI/CD pipelines.
 
 Uses LLMs (OpenAI GPT) to parse logs, identify root causes,
 and suggest fixes automatically.
@@ -19,29 +18,25 @@ from pydantic import BaseModel, Field
 class AnalysisResult(BaseModel):
     """Structured result from log analysis."""
 
-    root_cause: str = Field(
-        description="The identified root cause of the failure"
-    )
-    suggested_fix: str = Field(
-        description="Actionable suggestion to fix the issue"
-    )
+    root_cause: str = Field(description="The identified root cause of the failure")
+    suggested_fix: str = Field(description="Actionable suggestion to fix the issue")
     confidence_score: float = Field(
-        ge=0.0, le=1.0,
-        description="Confidence level of the analysis (0.0 - 1.0)"
+        ge=0.0,
+        le=1.0,
+        description="Confidence level of the analysis (0.0 - 1.0)",
     )
     error_type: Optional[str] = Field(
         default=None,
-        description="Classified error type (e.g., 'dependency', 'syntax', 'network')"
+        description="Classified error type (e.g., 'dependency', 'syntax', 'network')",
     )
     affected_file: Optional[str] = Field(
         default=None,
-        description="File or component where the error originated"
+        description="File or component where the error originated",
     )
 
 
 class LogAnalyzer:
-    """
-    Analyzes CI/CD log files using LLMs to identify root causes and suggest fixes.
+    """Analyzes CI/CD log files using LLMs to identify root causes and suggest fixes.
 
     Args:
         model: OpenAI model to use (default: gpt-4o-mini).
@@ -79,8 +74,7 @@ Focus on the most critical error. Ignore warnings unless they are the root cause
         self.client = OpenAI(api_key=api_key or os.environ.get("OPENAI_API_KEY"))
 
     def analyze(self, log_path: str | Path) -> AnalysisResult:
-        """
-        Analyze a log file and return a structured analysis result.
+        """Analyze a log file and return a structured analysis result.
 
         Args:
             log_path: Path to the log file to analyze.
@@ -105,8 +99,7 @@ Focus on the most critical error. Ignore warnings unless they are the root cause
         return self._analyze_content(log_content)
 
     def analyze_content(self, log_content: str) -> AnalysisResult:
-        """
-        Analyze raw log content string.
+        """Analyze raw log content string.
 
         Args:
             log_content: The raw log text to analyze.
@@ -129,7 +122,10 @@ Focus on the most critical error. Ignore warnings unless they are the root cause
                 {"role": "system", "content": self.SYSTEM_PROMPT},
                 {
                     "role": "user",
-                    "content": f"Analyze this CI/CD log and identify the root cause:\n\n```\n{truncated_log}\n```",
+                    "content": (
+                        f"Analyze this CI/CD log and identify the root cause:\n\n"
+                        f"```\n{truncated_log}\n```"
+                    ),
                 },
             ],
             response_format=AnalysisResult,
@@ -138,8 +134,7 @@ Focus on the most critical error. Ignore warnings unless they are the root cause
         return response.choices[0].message.parsed
 
     def _truncate_log(self, log_content: str) -> str:
-        """
-        Intelligently truncate logs to fit within token limits.
+        """Intelligently truncate logs to fit within token limits.
 
         Keeps the beginning (context) and end (where errors usually appear)
         of the log, removing the middle if necessary.
@@ -155,8 +150,7 @@ Focus on the most critical error. Ignore warnings unless they are the root cause
 
     @staticmethod
     def extract_errors(log_content: str) -> list[str]:
-        """
-        Extract error lines from log content using regex patterns.
+        """Extract error lines from log content using regex patterns.
 
         Useful for pre-filtering before sending to the LLM.
 
