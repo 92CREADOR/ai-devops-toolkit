@@ -36,7 +36,7 @@ class AnalysisResult(BaseModel):
 
 
 class LogAnalyzer:
-    """Analyzes CI/CD log files using LLMs to identify root causes and suggest fixes.
+    """Analyzes CI/CD log files using LLMs to identify root causes and suggests fixes.
 
     Args:
         model: OpenAI model to use (default: gpt-4o-mini).
@@ -50,18 +50,22 @@ class LogAnalyzer:
         >>> print(result.suggested_fix)
     """
 
-    SYSTEM_PROMPT = """You are an expert DevOps engineer specializing in CI/CD pipeline debugging.
-Your task is to analyze build/deployment logs and identify the root cause of failures.
+    SYSTEM_PROMPT = (
+        "You are an expert DevOps engineer specializing in CI/CD pipeline debugging. "
+        "Analyze build/deployment logs and identify the root cause of failures. "
+        "Provide: root cause, actionable fix, confidence (0.0-1.0), error type, affected file."
+    )
 
-For each log you analyze, provide:
-1. The specific root cause of the failure (be precise, reference line numbers if visible)
-2. A clear, actionable fix the developer can apply
-3. Your confidence level (0.0-1.0) in the analysis
-4. The error type category
-5. The affected file or component if identifiable
-
-Focus on the most critical error. Ignore warnings unless they are the root cause.
-"""
+    ERROR_PATTERNS = [
+        "(?i)ERROR",
+        "(?i)FAILED",
+        "(?i)FATAL",
+        "(?i)exception",
+        "(?i)traceback",
+        "(?i)not found",
+        "(?i)permission denied",
+        "exit code [1-9]",
+    ]
 
     def __init__(
         self,
@@ -122,10 +126,7 @@ Focus on the most critical error. Ignore warnings unless they are the root cause
                 {"role": "system", "content": self.SYSTEM_PROMPT},
                 {
                     "role": "user",
-                    "content": (
-                        f"Analyze this CI/CD log and identify the root cause:\n\n"
-                        f"```\n{truncated_log}\n```"
-                    ),
+                    "content": f"Analyze this CI/CD log:\n\n{truncated_log}",
                 },
             ],
             response_format=AnalysisResult,
@@ -146,7 +147,7 @@ Focus on the most critical error. Ignore warnings unless they are the root cause
         start = log_content[:half]
         end = log_content[-half:]
 
-        return f"{start}\n\n[... LOG TRUNCATED - middle section omitted ...]\n\n{end}"
+        return f"{start}\n\n[... LOG TRUNCATED ...]\n\n{end}"
 
     @staticmethod
     def extract_errors(log_content: str) -> list[str]:
@@ -160,18 +161,7 @@ Focus on the most critical error. Ignore warnings unless they are the root cause
         Returns:
             List of lines containing error indicators.
         """
-        error_patterns = [
-            r"(?i)\bERROR\b",
-            r"(?i)\bFAILED\b",
-            r"(?i)\bFATAL\b",
-            r"(?i)exception",
-            r"(?i)traceback",
-            r"(?i)\bnot found\b",
-            r"(?i)permission denied",
-            r"exit code [1-9]",
-        ]
-
-        combined_pattern = "|".join(error_patterns)
+        combined_pattern = "|".join(LogAnalyzer.ERROR_PATTERNS)
         error_lines = []
 
         for line in log_content.splitlines():
