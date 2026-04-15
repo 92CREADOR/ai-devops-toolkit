@@ -1,4 +1,5 @@
 """pytest configuration for log-analyzer tests."""
+
 import sys
 from pathlib import Path
 
